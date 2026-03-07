@@ -39,6 +39,3 @@ replay_*.log
 *.hprof
 *.jfr
 
-
-# AI prompts
-prompts/

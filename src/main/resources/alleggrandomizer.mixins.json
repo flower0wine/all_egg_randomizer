@@ -3,7 +3,7 @@
 	"package": "com.alleggrandomizer.mixin",
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
-		"ExampleMixin"
+		"ThrownEggEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

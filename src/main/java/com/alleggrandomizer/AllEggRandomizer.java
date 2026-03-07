@@ -1,8 +1,13 @@
 package com.alleggrandomizer;
 
 import net.fabricmc.api.ModInitializer;
+import net.fabricmc.fabric.api.command.v2.CommandRegistrationCallback;
 import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
+
+import com.alleggrandomizer.command.EggCommand;
+import com.alleggrandomizer.config.ConfigManager;
+import com.alleggrandomizer.network.NetworkHandler;
 
 public class AllEggRandomizer implements ModInitializer {
 	public static final String MOD_ID = "alleggrandomizer";
@@ -11,6 +16,17 @@ public class AllEggRandomizer implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
+		// Initialize configuration manager
+		ConfigManager.getInstance();
+
+		// Register network packets
+		NetworkHandler.registerPackets();
+
+		// Register commands
+		CommandRegistrationCallback.EVENT.register((dispatcher, registryAccess, environment) -> {
+			EggCommand.register(dispatcher, environment.dedicated);
+		});
+
 		LOGGER.info("All Egg Randomizer initialized!");
 	}
 }

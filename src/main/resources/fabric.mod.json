@@ -1,31 +1,32 @@
 {
 	"schemaVersion": 1,
-	"id": "modid",
+	"id": "alleggrandomizer",
 	"version": "${version}",
-	"name": "Example mod",
-	"description": "This is an example description! Tell everyone what your mod is about!",
+	"name": "All Egg Randomizer",
+	"description": "万物彩蛋 - 鸡蛋砸出随机物品",
 	"authors": [
-		"Me!"
+		"flowerwine",
+		"任性"
 	],
 	"contact": {
 		"homepage": "https://fabricmc.net/",
 		"sources": "https://github.com/FabricMC/fabric-example-mod"
 	},
 	"license": "CC0-1.0",
-	"icon": "assets/modid/icon.png",
+	"icon": "assets/alleggrandomizer/icon.png",
 	"environment": "*",
 	"entrypoints": {
 		"main": [
-			"com.example.ExampleMod"
+			"com.alleggrandomizer.AllEggRandomizer"
 		],
 		"client": [
-			"com.example.ExampleModClient"
+			"com.alleggrandomizer.AllEggRandomizerClient"
 		]
 	},
 	"mixins": [
-		"modid.mixins.json",
+		"alleggrandomizer.mixins.json",
 		{
-			"config": "modid.client.mixins.json",
+			"config": "alleggrandomizer.client.mixins.json",
 			"environment": "client"
 		}
 	],

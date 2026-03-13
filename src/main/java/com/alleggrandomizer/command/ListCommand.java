@@ -2,7 +2,7 @@ package com.alleggrandomizer.command;
 
 import com.alleggrandomizer.config.CategoryConfig;
 import com.alleggrandomizer.config.CategoryType;
-import com.alleggrandomizer.config.ConfigManager;
+import com.alleggrandomizer.config.WorldConfigManager;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
@@ -30,12 +30,17 @@ public class ListCommand {
      */
     public static int execute(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
-        ConfigManager configManager = ConfigManager.getInstance();
+        var worldConfig = WorldConfigManager.getWorldConfig(source.getServer());
+        
+        if (worldConfig == null) {
+            source.sendError(Text.literal("§c无法获取世界配置"));
+            return 0;
+        }
         
         source.sendFeedback(() -> Text.literal("§6=== All Egg Randomizer 配置 ==="), false);
         
         for (CategoryType type : CategoryType.values()) {
-            CategoryConfig config = configManager.getCategoryConfig(type);
+            CategoryConfig config = worldConfig.getCategoryConfig(type);
             if (config != null) {
                 String displayName = type.getDisplayName();
                 String enumName = type.name();

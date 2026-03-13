@@ -1,6 +1,6 @@
 package com.alleggrandomizer.command;
 
-import com.alleggrandomizer.config.ConfigManager;
+import com.alleggrandomizer.config.WorldConfigManager;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
 import com.mojang.brigadier.context.CommandContext;
 import net.minecraft.server.command.CommandManager;
@@ -9,7 +9,7 @@ import net.minecraft.text.Text;
 
 /**
  * Reload subcommand implementation.
- * Reloads the configuration from file.
+ * Reloads the world-specific configuration from persistent storage.
  * 
  * Implementation for SPEC-03: Command Control System
  */
@@ -34,18 +34,28 @@ public class ReloadCommand {
 
     /**
      * Execute the reload command.
+     * Note: With the new world-specific config system, configuration is automatically
+     * persisted and loaded. This command clears the cache and reloads from disk.
      */
     private static int execute(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
         
-        ConfigManager configManager = ConfigManager.getInstance();
-        boolean success = configManager.reloadConfig();
-        
-        if (success) {
-            source.sendFeedback(() -> Text.literal("§a配置已重载"), true);
-            return 1;
-        } else {
-            source.sendError(Text.literal("§c重载配置失败"));
+        try {
+            // Clear the cached config for this world, forcing a reload on next access
+            WorldConfigManager.clearWorldConfig(source.getServer());
+            
+            // Immediately reload by accessing it again
+            var worldConfig = WorldConfigManager.getWorldConfig(source.getServer());
+            
+            if (worldConfig != null) {
+                source.sendFeedback(() -> Text.literal("§a配置已重载"), true);
+                return 1;
+            } else {
+                source.sendError(Text.literal("§c重载配置失败：无法获取世界配置"));
+                return 0;
+            }
+        } catch (Exception e) {
+            source.sendError(Text.literal("§c重载配置时发生错误: " + e.getMessage()));
             return 0;
         }
     }

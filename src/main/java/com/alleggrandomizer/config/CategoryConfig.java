@@ -1,6 +1,9 @@
 package com.alleggrandomizer.config;
 
 import com.google.gson.annotations.SerializedName;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -9,6 +12,28 @@ import java.util.Map;
  * Contains enable/disable state, weight, and category-specific settings.
  */
 public class CategoryConfig {
+
+    // Codec for Map<String, Object> - we'll use a simplified approach storing as strings
+    private static final Codec<Map<String, Object>> SETTINGS_CODEC = 
+        Codec.unboundedMap(Codec.STRING, Codec.STRING)
+            .xmap(
+                // Convert Map<String, String> to Map<String, Object>
+                map -> new HashMap<>(map),
+                // Convert Map<String, Object> to Map<String, String>
+                map -> {
+                    Map<String, String> stringMap = new HashMap<>();
+                    map.forEach((k, v) -> stringMap.put(k, v != null ? v.toString() : ""));
+                    return stringMap;
+                }
+            );
+
+    public static final Codec<CategoryConfig> CODEC = RecordCodecBuilder.create(instance ->
+        instance.group(
+            Codec.BOOL.fieldOf("enabled").orElse(true).forGetter(CategoryConfig::isEnabled),
+            Codec.DOUBLE.fieldOf("weight").orElse(1.0).forGetter(CategoryConfig::getWeight),
+            SETTINGS_CODEC.fieldOf("specificSettings").orElse(new HashMap<>()).forGetter(CategoryConfig::getSpecificSettings)
+        ).apply(instance, CategoryConfig::new)
+    );
 
     @SerializedName("enabled")
     private boolean enabled = true;

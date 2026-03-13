@@ -1,11 +1,13 @@
 package com.alleggrandomizer.mixin;
 
 import com.alleggrandomizer.AllEggRandomizer;
-import com.alleggrandomizer.config.ConfigManager;
 import com.alleggrandomizer.config.ModConfig;
+import com.alleggrandomizer.config.WorldConfigData;
+import com.alleggrandomizer.config.WorldConfigManager;
 import com.alleggrandomizer.core.EggHitHandler;
 import net.minecraft.entity.EntityStatuses;
 import net.minecraft.entity.projectile.thrown.EggEntity;
+import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.hit.HitResult;
 import org.spongepowered.asm.mixin.Mixin;
 import org.spongepowered.asm.mixin.injection.At;
@@ -25,7 +27,18 @@ public class ThrownEggEntityMixin {
         }
         
         try {
-            ModConfig config = ConfigManager.getInstance().getConfig();
+            // Get world-specific configuration
+            if (!(egg.getEntityWorld() instanceof ServerWorld serverWorld)) {
+                return;
+            }
+            
+            WorldConfigData worldConfig = WorldConfigManager.getWorldConfig(serverWorld.getServer());
+            if (worldConfig == null) {
+                AllEggRandomizer.LOGGER.warn("World config not loaded, using vanilla behavior");
+                return;
+            }
+            
+            ModConfig config = worldConfig.getConfig();
             if (config == null) {
                 AllEggRandomizer.LOGGER.warn("Config not loaded, using vanilla behavior");
                 return;
@@ -41,7 +54,7 @@ public class ThrownEggEntityMixin {
             }
             
             // Handle the egg hit event with our custom logic
-            EggHitHandler.handleEggHit(egg, hitResult, config);
+            EggHitHandler.handleEggHit(egg, hitResult);
             
             // Send particle effect (same as vanilla)
             egg.getEntityWorld().sendEntityStatus(egg, EntityStatuses.PLAY_DEATH_SOUND_OR_ADD_PROJECTILE_HIT_PARTICLES);

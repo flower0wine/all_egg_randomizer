@@ -1,7 +1,7 @@
 package com.alleggrandomizer.command;
 
 import com.alleggrandomizer.config.CategoryType;
-import com.alleggrandomizer.config.ConfigManager;
+import com.alleggrandomizer.config.WorldConfigManager;
 import com.mojang.brigadier.arguments.DoubleArgumentType;
 import com.mojang.brigadier.arguments.StringArgumentType;
 import com.mojang.brigadier.builder.LiteralArgumentBuilder;
@@ -71,8 +71,13 @@ public class SetWeightCommand {
             return 0;
         }
         
-        ConfigManager configManager = ConfigManager.getInstance();
-        boolean success = configManager.setCategoryWeight(type, weight);
+        var worldConfig = WorldConfigManager.getWorldConfig(source.getServer());
+        if (worldConfig == null) {
+            source.sendError(Text.literal("§c无法获取世界配置"));
+            return 0;
+        }
+        
+        boolean success = worldConfig.setCategoryWeight(type, weight);
         
         if (success) {
             String displayName = type.getDisplayName();

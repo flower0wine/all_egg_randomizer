@@ -1,9 +1,19 @@
 package com.alleggrandomizer.config;
 
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
 /**
  * Global settings that apply to the entire mod behavior.
  */
 public class GlobalSettings {
+
+    public static final Codec<GlobalSettings> CODEC = RecordCodecBuilder.create(instance ->
+        instance.group(
+            Codec.INT.fieldOf("cooldown").orElse(0).forGetter(GlobalSettings::getCooldown),
+            Codec.INT.fieldOf("maxSpawnPerThrow").orElse(5).forGetter(GlobalSettings::getMaxSpawnPerThrow)
+        ).apply(instance, GlobalSettings::new)
+    );
 
     private int cooldown = 0;
     private int maxSpawnPerThrow = 5;

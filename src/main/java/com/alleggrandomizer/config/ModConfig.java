@@ -1,7 +1,9 @@
 package com.alleggrandomizer.config;
 
 import com.google.gson.annotations.SerializedName;
-import java.util.EnumMap;
+import com.mojang.serialization.Codec;
+import com.mojang.serialization.codecs.RecordCodecBuilder;
+
 import java.util.HashMap;
 import java.util.Map;
 
@@ -10,6 +12,19 @@ import java.util.Map;
  * Contains version info, all category configurations, and global settings.
  */
 public class ModConfig {
+
+    public static final Codec<ModConfig> CODEC = RecordCodecBuilder.create(instance ->
+        instance.group(
+            Codec.STRING.fieldOf("version").orElse("1.0.0").forGetter(ModConfig::getVersion),
+            Codec.unboundedMap(Codec.STRING, CategoryConfig.CODEC)
+                .fieldOf("categories")
+                .orElseGet(HashMap::new)
+                .forGetter(ModConfig::getCategories),
+            GlobalSettings.CODEC.fieldOf("globalSettings")
+                .orElseGet(GlobalSettings::new)
+                .forGetter(ModConfig::getGlobalSettings)
+        ).apply(instance, ModConfig::new)
+    );
 
     @SerializedName("version")
     private String version = "1.0.0";
@@ -25,20 +40,50 @@ public class ModConfig {
     }
 
     /**
+     * Constructor for codec deserialization.
+     */
+    private ModConfig(String version, Map<String, CategoryConfig> categories, GlobalSettings globalSettings) {
+        this.version = version;
+        this.categories = categories != null ? categories : new HashMap<>();
+        this.globalSettings = globalSettings != null ? globalSettings : new GlobalSettings();
+        
+        // Ensure all default categories exist
+        ensureDefaultCategories();
+    }
+
+    /**
      * Initialize default category configurations.
      */
     private void initializeDefaultCategories() {
-        // ENTITY: enabled by default
-        categories.put("ENTITY", new CategoryConfig(true, 1.0, createEntitySettings()));
+        // ENTITY: disabled by default
+        categories.put("ENTITY", new CategoryConfig(false, 5.0, createEntitySettings()));
         
         // ITEM: enabled by default
-        categories.put("ITEM", new CategoryConfig(true, 1.0, createItemSettings()));
+        categories.put("ITEM", new CategoryConfig(true, 85.0, createItemSettings()));
         
         // EFFECT: disabled by default
-        categories.put("EFFECT", new CategoryConfig(false, 1.0, createEffectSettings()));
+        categories.put("EFFECT", new CategoryConfig(false, 5.0, createEffectSettings()));
         
         // EVENT: disabled by default
-        categories.put("EVENT", new CategoryConfig(false, 1.0, createEventSettings()));
+        categories.put("EVENT", new CategoryConfig(false, 5.0, createEventSettings()));
+    }
+
+    /**
+     * Ensure all default categories exist (for loaded configs).
+     */
+    private void ensureDefaultCategories() {
+        if (!categories.containsKey("ENTITY")) {
+            categories.put("ENTITY", new CategoryConfig(false, 5.0, createEntitySettings()));
+        }
+        if (!categories.containsKey("ITEM")) {
+            categories.put("ITEM", new CategoryConfig(true, 85.0, createItemSettings()));
+        }
+        if (!categories.containsKey("EFFECT")) {
+            categories.put("EFFECT", new CategoryConfig(false, 5.0, createEffectSettings()));
+        }
+        if (!categories.containsKey("EVENT")) {
+            categories.put("EVENT", new CategoryConfig(false, 5.0, createEventSettings()));
+        }
     }
 
     private Map<String, Object> createEntitySettings() {
@@ -50,29 +95,28 @@ public class ModConfig {
 
     private Map<String, Object> createItemSettings() {
         Map<String, Object> settings = new HashMap<>();
-        settings.put("stackSize", 1);
+        settings.put("stackSize", 5);
         return settings;
     }
 
     private Map<String, Object> createEffectSettings() {
         Map<String, Object> settings = new HashMap<>();
-        settings.put("duration", 300);              // Effect duration in ticks (15 seconds)
-        settings.put("amplifier", 0);               // Effect level (0 = Level I)
-        settings.put("splashRadius", 3.0);          // Splash cloud radius (for SPLASH mode)
-        settings.put("splashDuration", 60);         // Splash cloud duration in ticks (3 seconds, for SPLASH mode)
-        settings.put("targetType", "ANY");          // Target type for DIRECT mode: PLAYER, ENTITY, or ANY
-        settings.put("searchRadius", 5.0);          // Search radius for DIRECT mode
+        settings.put("duration", 300);
+        settings.put("amplifier", 0);
+        settings.put("splashRadius", 3.0);
+        settings.put("splashDuration", 60);
+        settings.put("targetType", "ANY");
+        settings.put("searchRadius", 5.0);
         return settings;
     }
 
     private Map<String, Object> createEventSettings() {
         Map<String, Object> settings = new HashMap<>();
-        settings.put("targetPosition", "EGG");      // Position: PLAYER or EGG
-        settings.put("events", java.util.Arrays.asList("LIGHTNING")); // Enabled events list
+        settings.put("targetPosition", "EGG");
+        settings.put("events", java.util.Arrays.asList("LIGHTNING"));
 
-        // Lightning-specific settings
         Map<String, Object> lightningSettings = new HashMap<>();
-        lightningSettings.put("cosmetic", false);    // Cosmetic lightning (no damage/fire)
+        lightningSettings.put("cosmetic", false);
         settings.put("lightning", lightningSettings);
 
         return settings;
@@ -104,8 +148,6 @@ public class ModConfig {
 
     /**
      * Get category config by type.
-     * @param type the category type
-     * @return the category config, or null if not found
      */
     public CategoryConfig getCategory(CategoryType type) {
         if (type == null) {
@@ -116,8 +158,6 @@ public class ModConfig {
 
     /**
      * Get category config by type name.
-     * @param typeName the category type name (case-insensitive)
-     * @return the category config, or null if not found
      */
     public CategoryConfig getCategory(String typeName) {
         CategoryType type = CategoryType.fromString(typeName);
@@ -126,8 +166,6 @@ public class ModConfig {
 
     /**
      * Set category config.
-     * @param type the category type
-     * @param config the config to set
      */
     public void setCategory(CategoryType type, CategoryConfig config) {
         if (type != null && config != null) {
@@ -137,8 +175,6 @@ public class ModConfig {
 
     /**
      * Check if a category is enabled.
-     * @param type the category type
-     * @return true if enabled, false otherwise
      */
     public boolean isCategoryEnabled(CategoryType type) {
         CategoryConfig config = getCategory(type);

@@ -4,8 +4,10 @@ import com.alleggrandomizer.AllEggRandomizer;
 import com.alleggrandomizer.config.CategoryConfig;
 import com.alleggrandomizer.config.CategoryType;
 import com.alleggrandomizer.config.ModConfig;
-
-import java.util.*;
+import com.alleggrandomizer.core.classifier.ItemCategoryClassifier;
+import com.alleggrandomizer.core.item.BundleItemPopulator;
+import net.minecraft.item.Item;
+import net.minecraft.item.ItemStack;
 
 import java.util.*;
 
@@ -144,7 +146,7 @@ public class WeightedRandomSystem {
      * @param availableItems map of item registry keys to weights
      * @return the selected item, or null if selection fails
      */
-    public net.minecraft.item.ItemStack selectItem(ModConfig config, Map<net.minecraft.item.Item, Double> availableItems) {
+    public ItemStack selectItem(ModConfig config, Map<Item, Double> availableItems) {
         
         if (availableItems == null || availableItems.isEmpty()) {
             AllEggRandomizer.LOGGER.warn("No available items provided");
@@ -157,21 +159,46 @@ public class WeightedRandomSystem {
             return null;
         }
         
-        ProductSelector<net.minecraft.item.Item> selector = new ProductSelector<>();
+        ProductSelector<Item> selector = new ProductSelector<>();
         
-        // Get stack size from config (handle both Integer and Double from JSON)
-        Object stackSizeObj = itemConfig.getSetting("stackSize", 1);
-        int stackSize = 1;
-        if (stackSizeObj instanceof Number) {
-            stackSize = ((Number) stackSizeObj).intValue();
-        }
-        
-        net.minecraft.item.Item selectedItem = selector.selectProduct(availableItems);
+        Item selectedItem = selector.selectProduct(availableItems);
         if (selectedItem == null) {
             return null;
         }
         
-        return new net.minecraft.item.ItemStack(selectedItem, stackSize);
+        // Determine quantity based on item category
+        // Weapons and equipment: 1
+        // Other items: random 1-5
+        ItemStack itemStack = new ItemStack(selectedItem);
+        
+        int quantity;
+        if (ItemCategoryClassifier.isSingleQuantity(itemStack)) {
+            quantity = 1;
+        } else {
+            // Get config stack size as max, or use default 1-5
+            Number stackSizeObj = itemConfig.getSetting("stackSize", 5);
+            int maxQuantity = 5;
+            if (stackSizeObj != null) {
+                maxQuantity = Math.max(1, stackSizeObj.intValue());
+            }
+            
+            // Random between 1 and maxQuantity
+            Random random = new Random();
+            quantity = random.nextInt(maxQuantity) + 1;
+        }
+        AllEggRandomizer.LOGGER.info("Selected item: {} (category: {}, quantity: {})",
+            selectedItem, ItemCategoryClassifier.classify(itemStack), quantity);
+
+        ItemStack resultStack = new ItemStack(selectedItem, quantity);
+        
+        // Bundles should always have quantity of 1 and be populated with random items
+        if (BundleItemPopulator.isBundle(resultStack)) {
+            resultStack.setCount(1);
+            resultStack = BundleItemPopulator.populateBundle(resultStack);
+            AllEggRandomizer.LOGGER.info("Bundle item generated with quantity: 1 and populated contents");
+        }
+        
+        return resultStack;
     }
     
     /**

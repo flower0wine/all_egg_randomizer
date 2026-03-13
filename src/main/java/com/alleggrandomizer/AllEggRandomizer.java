@@ -6,7 +6,6 @@ import org.slf4j.Logger;
 import org.slf4j.LoggerFactory;
 
 import com.alleggrandomizer.command.EggCommand;
-import com.alleggrandomizer.config.ConfigManager;
 import com.alleggrandomizer.network.NetworkHandler;
 
 public class AllEggRandomizer implements ModInitializer {
@@ -16,9 +15,6 @@ public class AllEggRandomizer implements ModInitializer {
 
 	@Override
 	public void onInitialize() {
-		// Initialize configuration manager
-		ConfigManager.getInstance();
-
 		// Register network packets
 		NetworkHandler.registerPackets();
 

@@ -6,6 +6,7 @@ import com.alleggrandomizer.config.CategoryType;
 import com.alleggrandomizer.config.ModConfig;
 import com.alleggrandomizer.core.classifier.ItemCategoryClassifier;
 import com.alleggrandomizer.core.item.BundleItemPopulator;
+import com.alleggrandomizer.core.item.ShulkerBoxItemPopulator;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
 
@@ -196,6 +197,13 @@ public class WeightedRandomSystem {
             resultStack.setCount(1);
             resultStack = BundleItemPopulator.populateBundle(resultStack);
             AllEggRandomizer.LOGGER.info("Bundle item generated with quantity: 1 and populated contents");
+        }
+        
+        // Shulker boxes should always have quantity of 1 and be populated with random items
+        if (ShulkerBoxItemPopulator.isShulkerBox(resultStack)) {
+            resultStack.setCount(1);
+            resultStack = ShulkerBoxItemPopulator.populateShulkerBox(resultStack);
+            AllEggRandomizer.LOGGER.info("Shulker box generated with quantity: 1 and populated contents");
         }
         
         return resultStack;

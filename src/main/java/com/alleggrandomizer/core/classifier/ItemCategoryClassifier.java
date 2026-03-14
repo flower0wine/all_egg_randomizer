@@ -71,15 +71,21 @@ public class ItemCategoryClassifier {
 
     /**
      * Checks if the item should give only single quantity.
-     * (Weapons, tools, and equipment give 1)
+     * (Weapons, tools, equipment, and special items like buckets, boats, etc.)
      * 
      * @param itemStack the item stack to check
      * @return true if quantity should be 1
      */
     public static boolean isSingleQuantity(ItemStack itemStack) {
+        // First check weapon/tool/equipment categories
         ItemCategory category = classify(itemStack);
-        return category == ItemCategory.WEAPON || 
-               category == ItemCategory.TOOL || 
-               category == ItemCategory.EQUIPMENT;
+        if (category == ItemCategory.WEAPON || 
+            category == ItemCategory.TOOL || 
+            category == ItemCategory.EQUIPMENT) {
+            return true;
+        }
+        
+        // Then check special item types (buckets, harnesses, boats, shulker boxes, minecarts)
+        return SpecialItemClassifier.isSpecialItem(itemStack);
     }
 }

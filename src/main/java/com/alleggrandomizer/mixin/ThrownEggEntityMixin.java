@@ -5,6 +5,7 @@ import com.alleggrandomizer.config.ModConfig;
 import com.alleggrandomizer.config.WorldConfigData;
 import com.alleggrandomizer.config.WorldConfigManager;
 import com.alleggrandomizer.core.EggHitHandler;
+import net.fabricmc.fabric.api.transfer.v1.fluid.FluidStorage;
 import net.minecraft.entity.EntityStatuses;
 import net.minecraft.entity.projectile.thrown.EggEntity;
 import net.minecraft.server.world.ServerWorld;

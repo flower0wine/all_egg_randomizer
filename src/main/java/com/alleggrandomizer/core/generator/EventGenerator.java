@@ -5,8 +5,7 @@ import com.alleggrandomizer.config.CategoryConfig;
 import com.alleggrandomizer.config.CategoryType;
 import com.alleggrandomizer.config.EventTargetPosition;
 import com.alleggrandomizer.config.ModConfig;
-import com.alleggrandomizer.core.generator.event.LightningEvent;
-import com.alleggrandomizer.core.generator.event.WorldEvent;
+import com.alleggrandomizer.core.generator.event.*;
 import com.alleggrandomizer.random.ProductSelector;
 import net.minecraft.entity.Entity;
 import net.minecraft.entity.projectile.thrown.EggEntity;
@@ -22,7 +21,8 @@ import java.util.*;
  * Design pattern: Registry pattern - maintains a registry of available events.
  *
  * Current implementation:
- * - Supports LIGHTNING event
+ * - Supports LIGHTNING, TNT, BAT_WITCH, END_CRYSTAL_ARROW, RAINBOW_SHEEP,
+ *   PIG_WITH_SADDLE, REVERSE_RAINBOW_SHEEP, TNT_MINECART, MATH_QUIZ events
  * - Configurable target position (PLAYER or EGG)
  * - Extensible for future event types
  */
@@ -33,10 +33,18 @@ public class EventGenerator {
 
     // Initialize default events
     static {
+        // Basic events
         registerEvent(new LightningEvent());
-        // Future events can be registered here:
-        // registerEvent(new ExplosionEvent());
-        // registerEvent(new FireworkEvent());
+        
+        // New events
+        registerEvent(new TntEvent());
+        registerEvent(new BatWitchEvent());
+        registerEvent(new EndCrystalArrowEvent());
+        registerEvent(new RainbowSheepEvent());
+        registerEvent(new PigWithSaddleEvent());
+        registerEvent(new ReverseRainbowSheepEvent());
+        registerEvent(new TntMinecartEvent());
+        registerEvent(new MathQuizEvent());
     }
 
     /**
@@ -96,8 +104,8 @@ public class EventGenerator {
         // Get event-specific configuration
         Map<String, Object> eventSpecificConfig = getEventConfig(specificSettings, selectedEventId);
 
-        // Execute the event
-        boolean success = selectedEvent.execute(world, targetPosition, eventSpecificConfig);
+        // Execute the event - use executeWithEgg if the event supports it
+        boolean success = selectedEvent.executeWithEgg(world, targetPosition, eventSpecificConfig, egg);
 
         if (success) {
             AllEggRandomizer.LOGGER.info("Event executed successfully: {} at ({}, {}, {})",

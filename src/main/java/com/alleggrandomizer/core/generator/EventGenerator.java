@@ -136,12 +136,13 @@ public class EventGenerator {
 
     /**
      * Get the list of enabled events from configuration.
+     * Returns all registered events if not configured.
      */
     @SuppressWarnings("unchecked")
     private static List<String> getEnabledEvents(Map<String, Object> settings) {
         if (settings == null || !settings.containsKey("events")) {
-            // Default to LIGHTNING if not configured
-            return Collections.singletonList("LIGHTNING");
+            // Default to ALL registered events if not configured
+            return new ArrayList<>(EVENT_REGISTRY.keySet());
         }
 
         Object eventsObj = settings.get("events");
@@ -153,7 +154,8 @@ public class EventGenerator {
             }
         }
 
-        return Collections.singletonList("LIGHTNING");
+        // Default to ALL registered events if configuration is invalid
+        return new ArrayList<>(EVENT_REGISTRY.keySet());
     }
 
     /**

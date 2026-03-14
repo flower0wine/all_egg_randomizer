@@ -94,6 +94,32 @@ public class CategoryConfig {
         if (value == null) {
             return defaultValue;
         }
+        
+        // Handle type conversion for common cases
+        if (defaultValue instanceof Number) {
+            if (value instanceof Number) {
+                return (T) value;
+            } else if (value instanceof String) {
+                try {
+                    // Try to parse as integer
+                    return (T) Integer.valueOf((String) value);
+                } catch (NumberFormatException e) {
+                    try {
+                        // Try to parse as double
+                        return (T) Double.valueOf((String) value);
+                    } catch (NumberFormatException e2) {
+                        return defaultValue;
+                    }
+                }
+            }
+        } else if (defaultValue instanceof Boolean) {
+            if (value instanceof Boolean) {
+                return (T) value;
+            } else if (value instanceof String) {
+                return (T) Boolean.valueOf((String) value);
+            }
+        }
+        
         try {
             return (T) value;
         } catch (ClassCastException e) {

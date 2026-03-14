@@ -2,11 +2,13 @@ package com.alleggrandomizer.core.generator.event;
 
 import com.alleggrandomizer.AllEggRandomizer;
 import net.minecraft.entity.Entity;
+import net.minecraft.entity.damage.DamageTypes;
 import net.minecraft.entity.effect.StatusEffectInstance;
 import net.minecraft.entity.effect.StatusEffects;
 import net.minecraft.entity.projectile.thrown.EggEntity;
 import net.minecraft.item.ItemStack;
 import net.minecraft.item.Items;
+import net.minecraft.network.packet.s2c.play.PositionFlag;
 import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.network.ServerPlayerEntity;
 import net.minecraft.server.world.ServerWorld;
@@ -23,7 +25,7 @@ import java.util.*;
  * Math Quiz event implementation.
  * Asks the player a random math question, gives 5 seconds to answer.
  * Correct answer: random reward (emerald, diamond, netherite_ingot 2-6)
- * Wrong/Timeout: punishment (throw to sky, levitation effect)
+ * Wrong/Timeout: random punishment (death, sky fall, or 255 level levitation)
  */
 public class MathQuizEvent implements WorldEvent {
 
@@ -33,6 +35,15 @@ public class MathQuizEvent implements WorldEvent {
     
     // Active quizzes map (player UUID -> quiz data)
     private static final Map<UUID, MathQuizData> ACTIVE_QUIZZES = new HashMap<>();
+
+    /**
+     * Punishment types for wrong answer or timeout.
+     */
+    private enum PunishmentType {
+        DEATH,           // Immediate death
+        SKY_FALL,        // Throw to sky (y=255) and let fall
+        LEVITATION       // 255 level levitation effect
+    }
 
     @Override
     public String getEventId() {
@@ -254,31 +265,111 @@ public class MathQuizEvent implements WorldEvent {
 
     /**
      * Apply punishment for wrong answer or timeout.
-     * Punishment: throw to sky (y=255), levitation effect
+     * Randomly selects one of three punishments:
+     * 1. Immediate death
+     * 2. Throw to sky (y=255) and let fall
+     * 3. 255 level levitation effect
      */
     private static void applyPunishment(ServerPlayerEntity player) {
-        // Get current position
+        // Randomly select one of three punishments
+        PunishmentType punishment = PunishmentType.values()[RANDOM.nextInt(PunishmentType.values().length)];
+        
         double posX = player.getX();
         double posY = player.getY();
         double posZ = player.getZ();
         
-        // Throw player to sky (y = 255)
-        player.setPosition(posX, 255, posZ);
+        // Check if player is in creative or spectator mode
+        boolean isCreativeOrSpectator = player.isCreative() || player.isSpectator();
         
-        // Apply slow falling effect so they float down safely
-        // SLOW_FALLING prevents fall damage and makes player descend slowly
-        player.addStatusEffect(new StatusEffectInstance(
-            StatusEffects.SLOW_FALLING,
-            100, // 5 seconds
-            0, // level 0 (normal slow falling)
-            false,
-            false
-        ));
+        switch (punishment) {
+            case DEATH -> {
+                // Immediate death - kill the player
+                var world = player.getEntityWorld();
+                if (world instanceof ServerWorld serverWorld) {
+                    player.kill(serverWorld);
+                }
+                player.sendMessage(
+                    Text.literal("[数学问答] ").formatted(Formatting.RED)
+                        .append(Text.literal("惩罚: 立即处死!").formatted(Formatting.WHITE)),
+                    false
+                );
+                AllEggRandomizer.LOGGER.info("Applied DEATH punishment to player {}", player.getName().getString());
+            }
+            
+            case SKY_FALL -> {
+                // Get server world for teleport
+                ServerWorld world = player.getEntityWorld();
+                
+                // Use teleport method instead of setPosition for proper player teleportation
+                player.teleport(world, posX, 255, posZ, Set.of(), player.getYaw(), player.getPitch(), true);
+                
+                if (!isCreativeOrSpectator) {
+                    // Only apply slow falling for survival mode
+                    player.addStatusEffect(new StatusEffectInstance(
+                        StatusEffects.SLOW_FALLING,
+                        100, // 5 seconds
+                        0, // level 0 (normal slow falling)
+                        false,
+                        false
+                    ));
+                } else {
+                    // For creative/spectator: reset fall distance and disable flying
+                    player.fallDistance = 0;
+                    // Force stop flying by modifying abilities field
+                    player.getAbilities().flying = false;
+                    // Sync abilities to client
+                    player.sendAbilitiesUpdate();
+                }
+                
+                player.sendMessage(
+                    Text.literal("[数学问答] ").formatted(Formatting.RED)
+                        .append(Text.literal("惩罚: 丢到天空最高处落地!").formatted(Formatting.WHITE)),
+                    false
+                );
+                AllEggRandomizer.LOGGER.info("Applied SKY_FALL punishment to player {}", player.getName().getString());
+            }
+            
+            case LEVITATION -> {
+                // Apply 255 level levitation effect (amplifier 254 in MC, 0-indexed)
+                if (!isCreativeOrSpectator) {
+                    // Normal: apply levitation effect for survival mode
+                    player.addStatusEffect(new StatusEffectInstance(
+                        StatusEffects.LEVITATION,
+                        200, // 10 seconds
+                        254, // level 255 (0-indexed = 254)
+                        false,
+                        false
+                    ));
+                } else {
+                    // For creative/spectator: use alternative approach
+                    // Disable flying by modifying abilities field
+                    player.getAbilities().flying = false;
+                    player.sendAbilitiesUpdate();
+                    
+                    // Apply upward velocity to simulate levitation
+                    player.setVelocity(player.getVelocity().x, 5.0, player.getVelocity().z);
+                    
+                    // Add slow falling to eventually come down
+                    player.addStatusEffect(new StatusEffectInstance(
+                        StatusEffects.SLOW_FALLING,
+                        300, // 15 seconds
+                        0,
+                        false,
+                        false
+                    ));
+                }
+                
+                player.sendMessage(
+                    Text.literal("[数学问答] ").formatted(Formatting.RED)
+                        .append(Text.literal("惩罚: 255级漂浮效果!").formatted(Formatting.WHITE)),
+                    false
+                );
+                AllEggRandomizer.LOGGER.info("Applied LEVITATION punishment (level 255) to player {}", player.getName().getString());
+            }
+        }
         
         // Play sound
         player.playSound(SoundEvents.ENTITY_WITCH_CELEBRATE, 1.0f, 1.0f);
-        
-        AllEggRandomizer.LOGGER.info("Applied punishment to player {}", player.getName().getString());
     }
 
     @Override

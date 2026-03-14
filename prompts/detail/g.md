@@ -23,3 +23,4 @@
 
 - 目前的版本是最新版，SwordItem 在 1.21.5 被移除，使用了 DataComponentTypes 来更好地处理。
 - 在编写代码之前你需要熟悉 DataComponentTypes，判断物品的逻辑和使用的 API 需要寻找相关的文档。
+- grep_app_searchGitHub 工具不是搜索引擎，使用更具体的、简洁的搜索关键词，它是基于关键词匹配的，更短的关键词反而能得到更好的效果。

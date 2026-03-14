@@ -7,6 +7,8 @@ import com.alleggrandomizer.config.WorldConfigData;
 import com.alleggrandomizer.config.WorldConfigManager;
 import com.alleggrandomizer.core.entity.AgeConfigurator;
 import com.alleggrandomizer.core.entity.EntityConfigurationManager;
+import com.alleggrandomizer.core.entity.EntityConfigurator;
+import com.alleggrandomizer.core.entity.SpecialEntityType;
 import com.alleggrandomizer.core.entity.ZombieEquipmentConfigurator;
 import com.alleggrandomizer.core.entity.ZombieMountConfigurator;
 import com.alleggrandomizer.random.WeightedRandomSystem;
@@ -22,6 +24,7 @@ import net.minecraft.registry.entry.RegistryEntry;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.hit.HitResult;
 import net.minecraft.util.math.Vec3d;
+import net.minecraft.util.math.random.Random;
 
 import java.util.HashMap;
 import java.util.Map;
@@ -35,6 +38,9 @@ public class EggHitHandler {
     private static final WeightedRandomSystem randomSystem = new WeightedRandomSystem();
     private static final EntityConfigurationManager entityConfigManager =
         new EntityConfigurationManager();
+    
+    // Removed: separate special entity chance - now they are in the unified pool
+    private static final Random RANDOM = Random.create();
 
     static {
         // Register entity configurators
@@ -140,30 +146,98 @@ public class EggHitHandler {
     }
 
     private static void spawnEntity(ServerWorld world, Vec3d pos, ModConfig config) {
-        // Build entity weights from registry (equal weight for each)
+        // Build unified entity pool with both registry entities and special entities
         Map<RegistryEntry<EntityType<?>>, Double> entityWeights = buildEntityWeightsFromRegistry();
+        
+        // Add special entities to the pool with equal weight
+        addSpecialEntitiesToPool(entityWeights);
 
-        AllEggRandomizer.LOGGER.debug("Total entity types available: {}", entityWeights.size());
+        AllEggRandomizer.LOGGER.debug("Total entity types available (including special): {}", entityWeights.size());
 
         if (entityWeights.isEmpty()) {
             AllEggRandomizer.LOGGER.warn("No valid entities found in registry");
             return;
         }
 
+        // Select entity from unified pool
         RegistryEntry<EntityType<?>> selectedType = randomSystem.selectEntity(config, entityWeights);
 
         if (selectedType != null) {
-            var entity = selectedType.value().create(world, SpawnReason.TRIGGERED);
-            if (entity != null) {
-                entity.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
-
-                // Apply entity configurations (age, equipment, etc.)
-                entityConfigManager.configureEntity(entity, world);
-
-                world.spawnEntity(entity);
-                AllEggRandomizer.LOGGER.info("Spawned entity: {} at ({}, {}, {})",
-                    selectedType.value(), pos.x, pos.y, pos.z);
+            // Check if this is a special entity
+            SpecialEntityType specialType = findSpecialEntityByType(selectedType.value());
+            
+            if (specialType != null) {
+                spawnSpecialEntity(world, pos, specialType);
+            } else {
+                spawnRegistryEntity(world, pos, config, selectedType);
             }
+        }
+    }
+    
+    /**
+     * Adds special entities to the entity weight pool with equal weight.
+     */
+    private static void addSpecialEntitiesToPool(Map<RegistryEntry<EntityType<?>>, Double> entityWeights) {
+        for (SpecialEntityType specialType : SpecialEntityType.getRandomPool()) {
+            if (SpecialEntityType.isAvailable(specialType)) {
+                EntityType<?> entityType = specialType.getBaseEntityType();
+                // Get registry entry for the entity type
+                RegistryEntry<EntityType<?>> entry = Registries.ENTITY_TYPE.getEntry(entityType);
+                if (entry != null) {
+                    entityWeights.put(entry, 1.0);
+                }
+            }
+        }
+    }
+    
+    /**
+     * Finds a SpecialEntityType by its base EntityType.
+     */
+    private static SpecialEntityType findSpecialEntityByType(EntityType<?> entityType) {
+        for (SpecialEntityType type : SpecialEntityType.getRandomPool()) {
+            if (type.getBaseEntityType() == entityType) {
+                return type;
+            }
+        }
+        return null;
+    }
+
+    /**
+     * Spawns a special entity with predefined configuration.
+     */
+    private static void spawnSpecialEntity(ServerWorld world, Vec3d pos, SpecialEntityType type) {
+        EntityType<?> entityType = type.getBaseEntityType();
+        var entity = entityType.create(world, SpawnReason.TRIGGERED);
+        
+        if (entity != null) {
+            entity.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
+            
+            // Apply special entity configurator
+            EntityConfigurator configurator = type.getConfigurator();
+            if (configurator != null) {
+                configurator.configure(entity, world);
+            }
+            
+            world.spawnEntity(entity);
+            AllEggRandomizer.LOGGER.info("Spawned special entity: {} ({}) at ({}, {}, {})",
+                type.name(), type.getDisplayName(), pos.x, pos.y, pos.z);
+        }
+    }
+
+    /**
+     * Spawns an entity from the standard registry.
+     */
+    private static void spawnRegistryEntity(ServerWorld world, Vec3d pos, ModConfig config, RegistryEntry<EntityType<?>> selectedType) {
+        var entity = selectedType.value().create(world, SpawnReason.TRIGGERED);
+        if (entity != null) {
+            entity.refreshPositionAndAngles(pos.x, pos.y, pos.z, 0, 0);
+
+            // Apply entity configurations (age, equipment, etc.)
+            entityConfigManager.configureEntity(entity, world);
+
+            world.spawnEntity(entity);
+            AllEggRandomizer.LOGGER.info("Spawned entity: {} at ({}, {}, {})",
+                selectedType.value(), pos.x, pos.y, pos.z);
         }
     }
 

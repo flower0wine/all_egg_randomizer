@@ -5,15 +5,18 @@ import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.DyeColor;
 
 import java.util.Map;
 
 /**
  * Rainbow Sheep event implementation.
- * Spawns 6-12 sheep with random colors at the specified position.
+ * Spawns 6-12 sheep with the "jeb_" custom name to trigger the vanilla rainbow effect.
+ * 
+ * According to Minecraft mechanics, naming a sheep "jeb_" (with trailing underscore)
+ * triggers the rainbow wool rendering effect - the colors cycle through all 16 dye colors.
  */
 public class RainbowSheepEvent implements WorldEvent {
 
@@ -21,6 +24,9 @@ public class RainbowSheepEvent implements WorldEvent {
     private static final int MIN_SHEEP_COUNT = 6;
     private static final int MAX_SHEEP_COUNT = 12;
     private static final Random RANDOM = Random.create();
+    
+    // The magic name that triggers rainbow sheep effect in vanilla Minecraft
+    private static final String RAINBOW_NAME = "jeb_";
 
     @Override
     public String getEventId() {
@@ -42,10 +48,7 @@ public class RainbowSheepEvent implements WorldEvent {
             // Random count between min and max
             int sheepCount = RANDOM.nextInt(maxCount - minCount + 1) + minCount;
 
-            // Get all possible dye colors
-            DyeColor[] colors = DyeColor.values();
-
-            // Spawn sheep with random colors
+            // Spawn rainbow sheep
             for (int i = 0; i < sheepCount; i++) {
                 SheepEntity sheep = EntityType.SHEEP.create(world, SpawnReason.TRIGGERED);
                 if (sheep != null) {
@@ -61,18 +64,20 @@ public class RainbowSheepEvent implements WorldEvent {
                             0
                     );
 
-                    // Set random color
-                    DyeColor randomColor = colors[RANDOM.nextInt(colors.length)];
-                    sheep.setColor(randomColor);
+                    // Set the magic name to trigger rainbow effect
+                    sheep.setCustomName(Text.literal(RAINBOW_NAME));
+                    
+                    // Note: We don't need to setColor manually - jeb_ sheep automatically
+                    // cycle through all 16 colors in the rainbow effect
 
-                    // Set as baby
+                    // Set as baby for cuteness
                     sheep.setBaby(true);
 
                     world.spawnEntity(sheep);
                 }
             }
 
-            AllEggRandomizer.LOGGER.info("RainbowSheep event triggered at ({}, {}, {}): {} sheep",
+            AllEggRandomizer.LOGGER.info("RainbowSheep event triggered at ({}, {}, {}): {} rainbow sheep",
                     position.x, position.y, position.z, sheepCount);
 
             return true;

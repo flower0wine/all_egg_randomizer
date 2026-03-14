@@ -4,7 +4,8 @@
 	"compatibilityLevel": "JAVA_21",
 	"mixins": [
 		"ThrownEggEntityMixin",
-		"ServerPlayNetworkHandlerMixin"
+		"ServerPlayNetworkHandlerMixin",
+		"SheepEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

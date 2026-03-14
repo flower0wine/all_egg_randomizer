@@ -1,28 +1,40 @@
 package com.alleggrandomizer.core.generator.event;
 
 import com.alleggrandomizer.AllEggRandomizer;
+import com.alleggrandomizer.core.data.SheepDataKeys;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.SheepEntity;
 import net.minecraft.server.world.ServerWorld;
+import net.minecraft.text.Text;
 import net.minecraft.util.math.Vec3d;
 import net.minecraft.util.math.random.Random;
-import net.minecraft.util.DyeColor;
 
 import java.util.Map;
 
 /**
  * Reverse Rainbow Sheep event implementation.
- * Spawns a rainbow sheep that moves backwards at the specified position.
- * Note: The sheep will have backward movement applied via velocity manipulation.
+ * Spawns 1 upside-down rainbow sheep at the specified position.
+ * 
+ * Implementation:
+ * - Rainbow effect: "jeb_" prefix (vanilla) - triggers rainbow wool rendering
+ * - Upside-down effect: Custom TrackedData - triggers upside-down rendering
+ * 
+ * We use TrackedData because:
+ * 1. TrackedData automatically syncs from server to client
+ * 2. "jeb_" must be the exact name to trigger rainbow effect
+ * 
+ * The client mixin reads the TrackedData to determine if the sheep should be rendered upside-down.
  */
 public class ReverseRainbowSheepEvent implements WorldEvent {
 
     private static final String EVENT_ID = "REVERSE_RAINBOW_SHEEP";
+    private static final int MIN_SHEEP_COUNT = 1;
+    private static final int MAX_SHEEP_COUNT = 1;
     private static final Random RANDOM = Random.create();
     
-    // Backward movement speed
-    private static final double BACKWARD_SPEED = -0.15;
+    // The magic name that triggers rainbow sheep effect in vanilla Minecraft
+    private static final String RAINBOW_NAME = "jeb_";
 
     @Override
     public String getEventId() {
@@ -37,37 +49,51 @@ public class ReverseRainbowSheepEvent implements WorldEvent {
         }
 
         try {
-            // Get backward speed from config
-            double speed = getConfigValue(config, "speed", BACKWARD_SPEED);
+            // Get min and max sheep count from config
+            int minCount = getConfigValue(config, "minCount", MIN_SHEEP_COUNT);
+            int maxCount = getConfigValue(config, "maxCount", MAX_SHEEP_COUNT);
 
-            // Create sheep entity
-            SheepEntity sheep = EntityType.SHEEP.create(world, SpawnReason.TRIGGERED);
-            if (sheep == null) {
-                AllEggRandomizer.LOGGER.warn("Failed to create sheep entity");
-                return false;
+            // Random count between min and max
+            int sheepCount = RANDOM.nextInt(maxCount - minCount + 1) + minCount;
+
+            // Spawn upside-down rainbow sheep
+            for (int i = 0; i < sheepCount; i++) {
+                SheepEntity sheep = EntityType.SHEEP.create(world, SpawnReason.TRIGGERED);
+                if (sheep == null) {
+                    AllEggRandomizer.LOGGER.warn("Failed to create sheep entity");
+                    continue;
+                }
+
+                // Random offset for sheep position
+                double offsetX = (RANDOM.nextDouble() - 0.5) * 6;
+                double offsetZ = (RANDOM.nextDouble() - 0.5) * 6;
+
+                // Set position
+                sheep.refreshPositionAndAngles(
+                        position.x + offsetX,
+                        position.y,
+                        position.z + offsetZ,
+                        RANDOM.nextFloat() * 360,
+                        0
+                );
+
+                // Set the name to "jeb_" to trigger rainbow effect
+                // This MUST be exactly "jeb_" (with underscore) to work
+                sheep.setCustomName(Text.literal(RAINBOW_NAME));
+                
+                // Set TrackedData to mark this sheep for upside-down rendering
+                // This will automatically sync to nearby clients
+                sheep.getDataTracker().set(SheepDataKeys.FLIP_UPSIDE_DOWN, true);
+
+                // Set as baby for cuteness
+                sheep.setBaby(true);
+
+                // Spawn the sheep
+                world.spawnEntity(sheep);
             }
 
-            // Set position
-            sheep.refreshPositionAndAngles(position.x, position.y, position.z, 0, 0);
-
-            // Set random color (rainbow)
-            DyeColor[] colors = DyeColor.values();
-            DyeColor randomColor = colors[RANDOM.nextInt(colors.length)];
-            sheep.setColor(randomColor);
-
-            // Set as baby
-            sheep.setBaby(true);
-
-            // Spawn the sheep first
-            world.spawnEntity(sheep);
-
-            // Apply initial backward velocity to make it start moving backwards
-            // The sheep will continue moving in its facing direction but we'll give it backward velocity
-            Vec3d backwardVelocity = new Vec3d(0, 0, BACKWARD_SPEED);
-            sheep.setVelocity(backwardVelocity);
-
-            AllEggRandomizer.LOGGER.info("ReverseRainbowSheep event triggered at ({}, {}, {}) with speed {}",
-                    position.x, position.y, position.z, speed);
+            AllEggRandomizer.LOGGER.info("ReverseRainbowSheep event triggered at ({}, {}, {}): {} upside-down rainbow sheep",
+                    position.x, position.y, position.z, sheepCount);
 
             return true;
 
@@ -79,20 +105,20 @@ public class ReverseRainbowSheepEvent implements WorldEvent {
 
     @Override
     public String getDescription() {
-        return "Spawns a rainbow sheep that moves backwards at the target position";
+        return "Spawns 1 upside-down rainbow sheep at the target position";
     }
 
     /**
-     * Helper method to safely extract double config values.
+     * Helper method to safely extract integer config values.
      */
-    private double getConfigValue(Map<String, Object> config, String key, double defaultValue) {
+    private int getConfigValue(Map<String, Object> config, String key, int defaultValue) {
         if (config == null || !config.containsKey(key)) {
             return defaultValue;
         }
 
         Object value = config.get(key);
         if (value instanceof Number) {
-            return ((Number) value).doubleValue();
+            return ((Number) value).intValue();
         }
 
         return defaultValue;

@@ -29,7 +29,6 @@ public class EggCommand {
             .then(DisableCommand.register())
             .then(SetWeightCommand.register())
             .then(ReloadCommand.register())
-            .then(GuiCommand.register())
         );
         
         AllEggRandomizer.LOGGER.info("Registered /allegg command with all subcommands");

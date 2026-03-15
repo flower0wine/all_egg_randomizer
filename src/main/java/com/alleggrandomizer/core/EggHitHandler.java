@@ -11,6 +11,7 @@ import com.alleggrandomizer.core.entity.EntityConfigurator;
 import com.alleggrandomizer.core.entity.SpecialEntityType;
 import com.alleggrandomizer.core.entity.ZombieEquipmentConfigurator;
 import com.alleggrandomizer.core.entity.ZombieMountConfigurator;
+import com.alleggrandomizer.random.WeightedRandom;
 import com.alleggrandomizer.random.WeightedRandomSystem;
 import net.minecraft.entity.EntityType;
 import net.minecraft.entity.SpawnGroup;
@@ -28,6 +29,7 @@ import net.minecraft.util.math.random.Random;
 
 import java.util.HashMap;
 import java.util.Map;
+import java.util.Set;
 
 /**
  * Handles egg hit events and spawns random outputs based on configuration.
@@ -35,9 +37,64 @@ import java.util.Map;
  */
 public class EggHitHandler {
 
+    /**
+     * Default weight for most entities.
+     */
+    private static final double DEFAULT_ENTITY_WEIGHT = 1.0;
+
+    /**
+     * Reduced weight for boss entities (Ender Dragon and Wither).
+     * These are extremely powerful mobs that should rarely spawn from eggs.
+     */
+    private static final double BOSS_ENTITY_WEIGHT = 0.01;
+
+    /**
+     * Set of entity types that should have reduced spawn weight.
+     * These are boss-level entities that shouldn't spawn frequently.
+     */
+    private static final Set<EntityType<?>> REDUCED_WEIGHT_ENTITIES = Set.of(
+        EntityType.ENDER_DRAGON,
+        EntityType.WITHER
+    );
+
     private static final WeightedRandomSystem randomSystem = new WeightedRandomSystem();
     private static final EntityConfigurationManager entityConfigManager =
         new EntityConfigurationManager();
+    
+    /**
+     * Unified entity choice - wraps either a registry entity or a special entity.
+     * This allows both regular and special entities to be in the same pool.
+     */
+    public static class EntityChoice {
+        public final RegistryEntry<EntityType<?>> registryEntry;  // For regular entities
+        public final SpecialEntityType specialType;              // For special entities
+        
+        private EntityChoice(RegistryEntry<EntityType<?>> registryEntry, SpecialEntityType specialType) {
+            this.registryEntry = registryEntry;
+            this.specialType = specialType;
+        }
+        
+        /**
+         * Create a regular entity choice from registry entry.
+         */
+        public static EntityChoice fromRegistry(RegistryEntry<EntityType<?>> entry) {
+            return new EntityChoice(entry, null);
+        }
+        
+        /**
+         * Create a special entity choice.
+         */
+        public static EntityChoice fromSpecial(SpecialEntityType type) {
+            return new EntityChoice(null, type);
+        }
+        
+        /**
+         * Check if this is a special entity.
+         */
+        public boolean isSpecial() {
+            return specialType != null;
+        }
+    }
     
     // Removed: separate special entity chance - now they are in the unified pool
     private static final Random RANDOM = Random.create();
@@ -72,7 +129,8 @@ public class EggHitHandler {
 
         Vec3d pos = hitResult.getPos();
 
-        // Select category
+        // Select category using ThreadLocalRandom for high-quality randomness
+        // ThreadLocalRandom combines nanoTime + threadId + sequence for non-deterministic results
         CategoryType selectedCategory = randomSystem.selectCategory(config);
 
         if (selectedCategory == null) {
@@ -95,8 +153,9 @@ public class EggHitHandler {
     /**
      * Build a registry-based entity weight map with equal weights.
      * Uses the entity type registry to get all available entities.
+     * Boss entities (Ender Dragon, Wither) have significantly reduced weight.
      *
-     * @return map of entity registry entries to weights (equal weight for all)
+     * @return map of entity registry entries to weights
      */
     private static Map<RegistryEntry<EntityType<?>>, Double> buildEntityWeightsFromRegistry() {
         Map<RegistryEntry<EntityType<?>>, Double> entityWeights = new HashMap<>();
@@ -115,11 +174,22 @@ public class EggHitHandler {
                 continue;
             }
 
-            // Give equal weight to all valid entities
-            entityWeights.put(Registries.ENTITY_TYPE.getEntry(type), 1.0);
+            // Determine weight based on entity type
+            double weight = isReducedWeightEntity(type) ? BOSS_ENTITY_WEIGHT : DEFAULT_ENTITY_WEIGHT;
+            entityWeights.put(Registries.ENTITY_TYPE.getEntry(type), weight);
         }
 
         return entityWeights;
+    }
+
+    /**
+     * Check if an entity type should have reduced spawn weight.
+     *
+     * @param entityType the entity type to check
+     * @return true if the entity should have reduced weight
+     */
+    private static boolean isReducedWeightEntity(EntityType<?> entityType) {
+        return REDUCED_WEIGHT_ENTITIES.contains(entityType);
     }
 
     /**
@@ -147,59 +217,71 @@ public class EggHitHandler {
 
     private static void spawnEntity(ServerWorld world, Vec3d pos, ModConfig config) {
         // Build unified entity pool with both registry entities and special entities
-        Map<RegistryEntry<EntityType<?>>, Double> entityWeights = buildEntityWeightsFromRegistry();
-        
-        // Add special entities to the pool with equal weight
-        addSpecialEntitiesToPool(entityWeights);
+        // All entities (except Ender Dragon and Wither) have equal weight
+        Map<EntityChoice, Double> entityPool = buildUnifiedEntityPool();
 
-        AllEggRandomizer.LOGGER.debug("Total entity types available (including special): {}", entityWeights.size());
+        AllEggRandomizer.LOGGER.debug("Total entity pool size: {}", entityPool.size());
 
-        if (entityWeights.isEmpty()) {
+        if (entityPool.isEmpty()) {
             AllEggRandomizer.LOGGER.warn("No valid entities found in registry");
             return;
         }
 
-        // Select entity from unified pool
-        RegistryEntry<EntityType<?>> selectedType = randomSystem.selectEntity(config, entityWeights);
-
-        if (selectedType != null) {
-            // Check if this is a special entity
-            SpecialEntityType specialType = findSpecialEntityByType(selectedType.value());
+        // Select from unified pool using WeightedRandom - all entities have equal probability
+        WeightedRandom<EntityChoice> weightedRandom = new WeightedRandom<>();
+        EntityChoice choice = weightedRandom.selectFromMap(entityPool);
+        
+        if (choice == null) {
+            AllEggRandomizer.LOGGER.warn("Failed to select entity from pool");
+            return;
+        }
+        
+        if (choice.isSpecial()) {
+            spawnSpecialEntity(world, pos, choice.specialType);
+        } else {
+            spawnRegistryEntity(world, pos, config, choice.registryEntry);
+        }
+    }
+    
+    /**
+     * Build a unified pool containing both regular registry entities and special entities.
+     * All entities (except Ender Dragon and Wither) have equal weight.
+     */
+    private static Map<EntityChoice, Double> buildUnifiedEntityPool() {
+        Map<EntityChoice, Double> pool = new HashMap<>();
+        
+        // Add all registry entities with equal weight
+        for (EntityType<?> type : Registries.ENTITY_TYPE) {
+            // Skip entities that cannot spawn or are excluded
+            if (type == EntityType.PLAYER || type == EntityType.LIGHTNING_BOLT) {
+                continue;
+            }
             
-            if (specialType != null) {
-                spawnSpecialEntity(world, pos, specialType);
-            } else {
-                spawnRegistryEntity(world, pos, config, selectedType);
+            SpawnGroup spawnGroup = type.getSpawnGroup();
+            if (spawnGroup == SpawnGroup.MISC) {
+                continue;
+            }
+            
+            // Apply reduced weight for boss entities (Ender Dragon, Wither)
+            double weight = isReducedWeightEntity(type) ? BOSS_ENTITY_WEIGHT : DEFAULT_ENTITY_WEIGHT;
+            
+            RegistryEntry<EntityType<?>> entry = Registries.ENTITY_TYPE.getEntry(type);
+            if (entry != null) {
+                pool.put(EntityChoice.fromRegistry(entry), weight);
             }
         }
-    }
-    
-    /**
-     * Adds special entities to the entity weight pool with equal weight.
-     */
-    private static void addSpecialEntitiesToPool(Map<RegistryEntry<EntityType<?>>, Double> entityWeights) {
+        
+        // Add special entities with equal weight (they don't exist in registry)
         for (SpecialEntityType specialType : SpecialEntityType.getRandomPool()) {
-            if (SpecialEntityType.isAvailable(specialType)) {
-                EntityType<?> entityType = specialType.getBaseEntityType();
-                // Get registry entry for the entity type
-                RegistryEntry<EntityType<?>> entry = Registries.ENTITY_TYPE.getEntry(entityType);
-                if (entry != null) {
-                    entityWeights.put(entry, 1.0);
-                }
+            if (!SpecialEntityType.isAvailable(specialType)) {
+                continue;
             }
+            
+            // All special entities get equal weight (1.0)
+            pool.put(EntityChoice.fromSpecial(specialType), DEFAULT_ENTITY_WEIGHT);
         }
-    }
-    
-    /**
-     * Finds a SpecialEntityType by its base EntityType.
-     */
-    private static SpecialEntityType findSpecialEntityByType(EntityType<?> entityType) {
-        for (SpecialEntityType type : SpecialEntityType.getRandomPool()) {
-            if (type.getBaseEntityType() == entityType) {
-                return type;
-            }
-        }
-        return null;
+        
+        return pool;
     }
 
     /**

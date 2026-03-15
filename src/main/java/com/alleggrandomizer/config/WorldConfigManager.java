@@ -5,22 +5,22 @@ import net.minecraft.server.MinecraftServer;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.world.level.ServerWorldProperties;
 
-import java.util.Map;
-import java.util.concurrent.ConcurrentHashMap;
-
 /**
  * Manages per-world configuration instances.
  * Each world (save file) has its own independent configuration.
  * 
  * This ensures that configuration changes in one world do not affect other worlds.
+ * 
+ * Note: We do NOT use a static cache here because:
+ * 1. PersistentStateManager already handles caching internally
+ * 2. A static cache would cause config to be shared between worlds with the same name
+ * 3. Each call to getWorldConfig() should fetch fresh data from the world's save file
  */
 public class WorldConfigManager {
     
-    private static final Map<String, WorldConfigData> worldConfigs = new ConcurrentHashMap<>();
-    
     /**
      * Get the configuration for a specific world.
-     * Creates a new configuration if one doesn't exist for this world.
+     * Fetches directly from PersistentStateManager - no static cache.
      * 
      * @param server the Minecraft server
      * @return the world-specific configuration data
@@ -37,16 +37,15 @@ public class WorldConfigManager {
             return null;
         }
         
-        // Get world name as unique identifier
+        // Get world name for logging
         String worldName = getWorldName(server);
         
-            // Get or create config for this world
-            WorldConfigData config = worldConfigs.computeIfAbsent(worldName, name -> {
-                AllEggRandomizer.LOGGER.info("Loading configuration for world: {}", name);
-                return overworld.getPersistentStateManager().getOrCreate(
-                    WorldConfigData.getPersistentStateType()
-                );
-            });
+        // Always fetch fresh from PersistentStateManager
+        // It handles caching internally, so we don't need our own cache
+        AllEggRandomizer.LOGGER.info("Loading configuration for world: {}", worldName);
+        WorldConfigData config = overworld.getPersistentStateManager().getOrCreate(
+            WorldConfigData.getPersistentStateType()
+        );
         
         return config;
     }
@@ -63,32 +62,5 @@ public class WorldConfigManager {
             return props.getLevelName();
         }
         return "unknown_world";
-    }
-    
-    /**
-     * Clear cached configuration for a world.
-     * Called when a world is unloaded.
-     * 
-     * @param server the Minecraft server
-     */
-    public static void clearWorldConfig(MinecraftServer server) {
-        if (server == null) {
-            return;
-        }
-        
-        String worldName = getWorldName(server);
-        WorldConfigData removed = worldConfigs.remove(worldName);
-        if (removed != null) {
-            AllEggRandomizer.LOGGER.info("Cleared configuration cache for world: {}", worldName);
-        }
-    }
-    
-    /**
-     * Clear all cached configurations.
-     * Typically called on mod shutdown.
-     */
-    public static void clearAllConfigs() {
-        worldConfigs.clear();
-        AllEggRandomizer.LOGGER.info("Cleared all world configuration caches");
     }
 }

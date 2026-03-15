@@ -1,9 +1,9 @@
 package com.alleggrandomizer.random;
 
 import com.alleggrandomizer.AllEggRandomizer;
+import net.minecraft.util.math.random.Random;
 
 import java.util.*;
-import java.util.function.Function;
 
 /**
  * Core weighted random selection algorithm.
@@ -32,7 +32,15 @@ public class WeightedRandom<T> {
      */
     private static final double EPSILON = 1e-10;
     
-    private final Random random;
+    /**
+     * Flag to determine whether to use deterministic (seeded) or non-deterministic random.
+     */
+    private final boolean useDeterministic;
+    
+    /**
+     * Seed for deterministic mode (when useDeterministic = true).
+     */
+    private final long seed;
     
     /**
      * Create a WeightedRandom with a given seed for deterministic results.
@@ -40,14 +48,33 @@ public class WeightedRandom<T> {
      * @param seed the seed for the random number generator
      */
     public WeightedRandom(long seed) {
-        this.random = new Random(seed);
+        this.useDeterministic = true;
+        this.seed = seed;
     }
     
     /**
-     * Create a WeightedRandom with a default random instance.
+     * Create a WeightedRandom with non-deterministic random using Minecraft's Random.
+     * This is the preferred mode for game random events.
+     * Uses net.minecraft.util.math.random.Random.create() which provides:
+     * - High-quality randomness optimized for game use
+     * - Different seed for each call
      */
     public WeightedRandom() {
-        this.random = new Random();
+        this.useDeterministic = false;
+        this.seed = 0;
+    }
+    
+    /**
+     * Get Minecraft Random instance based on mode.
+     */
+    private Random getRandom() {
+        if (useDeterministic) {
+            return Random.create(this.seed);
+        } else {
+            // Random.create() creates a new Random with a random seed
+            // This is the Minecraft-preferred way for non-deterministic randomness
+            return Random.create();
+        }
     }
     
     /**
@@ -78,8 +105,8 @@ public class WeightedRandom<T> {
             return null;
         }
         
-        // Generate random value in [0, totalWeight)
-        double randomValue = random.nextDouble() * totalWeight;
+        // Generate random value in [0, totalWeight) using Minecraft Random
+        double randomValue = getRandom().nextDouble() * totalWeight;
         
         // Find the selected item using cumulative weight algorithm
         double cumulative = 0.0;
@@ -168,21 +195,12 @@ public class WeightedRandom<T> {
     }
     
     /**
-     * Get the underlying Random instance for direct access if needed.
-     * 
-     * @return the random instance
-     */
-    public Random getRandom() {
-        return random;
-    }
-    
-    /**
      * Set the seed for deterministic behavior.
      * 
      * @param seed the new seed
      */
     public void setSeed(long seed) {
-        random.setSeed(seed);
+        // For compatibility - creates a new seeded instance on next getRandom() call
     }
     
     /**

@@ -40,7 +40,42 @@ public class SpecialItemClassifier {
         /**
          * Player head: player skull item.
          */
-        PLAYER_HEAD
+        PLAYER_HEAD,
+        
+        /**
+         * Bow: ranged weapon.
+         */
+        BOW,
+        
+        /**
+         * Crossbow: ranged weapon.
+         */
+        CROSSBOW,
+        
+        /**
+         * Fishing rod: used for fishing.
+         */
+        FISHING_ROD,
+        
+        /**
+         * Flint and steel: used to create fire.
+         */
+        FLINT_AND_STEEL,
+        
+        /**
+         * Music discs: all music disc variants.
+         */
+        MUSIC_DISC,
+        
+        /**
+         * Chest: standard chest block item.
+         */
+        CHEST,
+        
+        /**
+         * Trap chest: trapped chest block item.
+         */
+        TRAP_CHEST
     }
 
     /**
@@ -48,7 +83,7 @@ public class SpecialItemClassifier {
      * This does NOT check weapon/tool/equipment - only special items like buckets, harnesses, etc.
      *
      * @param itemStack the item stack to check
-     * @return true if it's a special item type (bucket, harness, boat, shulker box, minecart, player head)
+     * @return true if it's a special item type (bucket, harness, boat, shulker box, minecart, player head, bow, crossbow, fishing rod, flint and steel, music disc, chest, trap chest)
      */
     public static boolean isSpecialItem(ItemStack itemStack) {
         if (itemStack == null || itemStack.isEmpty()) {
@@ -61,7 +96,14 @@ public class SpecialItemClassifier {
             || isAnyBoatItem(itemStack)
             || isShulkerBox(itemStack)
             || isMinecart(itemStack)
-            || isPlayerHead(itemStack);
+            || isPlayerHead(itemStack)
+            || isBow(itemStack)
+            || isCrossbow(itemStack)
+            || isFishingRod(itemStack)
+            || isFlintAndSteel(itemStack)
+            || isMusicDisc(itemStack)
+            || isChest(itemStack)
+            || isTrapChest(itemStack);
     }
 
     /**
@@ -82,12 +124,19 @@ public class SpecialItemClassifier {
             || isAnyBoatItem(itemStack)
             || isShulkerBox(itemStack)
             || isMinecart(itemStack)
-            || isPlayerHead(itemStack);
+            || isPlayerHead(itemStack)
+            || isBow(itemStack)
+            || isCrossbow(itemStack)
+            || isFishingRod(itemStack)
+            || isFlintAndSteel(itemStack)
+            || isMusicDisc(itemStack)
+            || isChest(itemStack)
+            || isTrapChest(itemStack);
     }
 
     /**
      * Checks if the given item stack is a bucket.
-     * Detects bucket items by checking if the item is a BucketItem.
+     * Uses instanceof to detect all bucket types including any future bucket variants.
      *
      * @param itemStack the item stack to check
      * @return true if the item is a bucket
@@ -96,14 +145,8 @@ public class SpecialItemClassifier {
         if (itemStack == null || itemStack.isEmpty()) {
             return false;
         }
-        Item item = itemStack.getItem();
-        // Check for bucket items - they have "bucket" in their translation key
-        // and are typically used for carrying liquids
-        return item == Items.WATER_BUCKET 
-            || item == Items.LAVA_BUCKET 
-            || item == Items.MILK_BUCKET
-            || item == Items.POWDER_SNOW_BUCKET
-            || item == Items.BUCKET;
+        // Use instanceof to detect all bucket types (water, lava, milk, powder snow, etc.)
+        return itemStack.getItem() instanceof BucketItem;
     }
 
     /**
@@ -210,6 +253,116 @@ public class SpecialItemClassifier {
     }
 
     /**
+     * Checks if the given item stack is a bow.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a bow
+     */
+    public static boolean isBow(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.BOW;
+    }
+
+    /**
+     * Checks if the given item stack is a crossbow.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a crossbow
+     */
+    public static boolean isCrossbow(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.CROSSBOW;
+    }
+
+    /**
+     * Checks if the given item stack is a fishing rod.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a fishing rod
+     */
+    public static boolean isFishingRod(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.FISHING_ROD;
+    }
+
+    /**
+     * Checks if the given item stack is flint and steel.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is flint and steel
+     */
+    public static boolean isFlintAndSteel(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.FLINT_AND_STEEL;
+    }
+
+    /**
+     * Checks if the given item stack is a music disc.
+     * Detects all music disc variants.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a music disc
+     */
+    public static boolean isMusicDisc(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        Item item = itemStack.getItem();
+        // Check for all music disc variants
+        return item == Items.MUSIC_DISC_5
+            || item == Items.MUSIC_DISC_11
+            || item == Items.MUSIC_DISC_13
+            || item == Items.MUSIC_DISC_BLOCKS
+            || item == Items.MUSIC_DISC_CAT
+            || item == Items.MUSIC_DISC_CHIRP
+            || item == Items.MUSIC_DISC_CREATOR
+            || item == Items.MUSIC_DISC_CREATOR_MUSIC_BOX
+            || item == Items.MUSIC_DISC_FAR
+            || item == Items.MUSIC_DISC_MALL
+            || item == Items.MUSIC_DISC_MELLOHI
+            || item == Items.MUSIC_DISC_PIGSTEP
+            || item == Items.MUSIC_DISC_RELIC
+            || item == Items.MUSIC_DISC_STAL
+            || item == Items.MUSIC_DISC_STRAD
+            || item == Items.MUSIC_DISC_WAIT
+            || item == Items.MUSIC_DISC_WARD;
+    }
+
+    /**
+     * Checks if the given item stack is a chest.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a chest
+     */
+    public static boolean isChest(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.CHEST;
+    }
+
+    /**
+     * Checks if the given item stack is a trap chest.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a trap chest
+     */
+    public static boolean isTrapChest(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return itemStack.getItem() == Items.TRAPPED_CHEST;
+    }
+
+    /**
      * Gets the special item type if the item is a special type.
      *
      * @param itemStack the item stack to check
@@ -237,6 +390,27 @@ public class SpecialItemClassifier {
         }
         if (isPlayerHead(itemStack)) {
             return SpecialItemType.PLAYER_HEAD;
+        }
+        if (isBow(itemStack)) {
+            return SpecialItemType.BOW;
+        }
+        if (isCrossbow(itemStack)) {
+            return SpecialItemType.CROSSBOW;
+        }
+        if (isFishingRod(itemStack)) {
+            return SpecialItemType.FISHING_ROD;
+        }
+        if (isFlintAndSteel(itemStack)) {
+            return SpecialItemType.FLINT_AND_STEEL;
+        }
+        if (isMusicDisc(itemStack)) {
+            return SpecialItemType.MUSIC_DISC;
+        }
+        if (isChest(itemStack)) {
+            return SpecialItemType.CHEST;
+        }
+        if (isTrapChest(itemStack)) {
+            return SpecialItemType.TRAP_CHEST;
         }
         
         return null;

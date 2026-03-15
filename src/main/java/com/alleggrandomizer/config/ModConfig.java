@@ -113,8 +113,19 @@ public class ModConfig {
     private Map<String, Object> createEventSettings() {
         Map<String, Object> settings = new HashMap<>();
         settings.put("targetPosition", "EGG");
-        settings.put("events", java.util.Arrays.asList("LIGHTNING"));
+        settings.put("events", java.util.Arrays.asList(
+            "LIGHTNING",
+            "TNT",
+            "BAT_WITCH",
+            "END_CRYSTAL_ARROW",
+            "RAINBOW_SHEEP",
+            "PIG_WITH_SADDLE",
+            "REVERSE_RAINBOW_SHEEP",
+            "TNT_MINECART",
+            "MATH_QUIZ"
+        ));
 
+        // Lightning settings
         Map<String, Object> lightningSettings = new HashMap<>();
         lightningSettings.put("cosmetic", false);
         settings.put("lightning", lightningSettings);

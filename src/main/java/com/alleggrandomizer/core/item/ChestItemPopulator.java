@@ -16,60 +16,149 @@ import java.util.List;
 import java.util.Random;
 
 /**
- * Populates shulker box items with random contents.
- * Handles the logic for filling shulker boxes with random item types,
+ * Populates chest and trap chest items with random contents.
+ * Handles the logic for filling chests with random item types,
  * respecting quantity rules for weapons/equipment vs other items.
  * Items are randomly distributed across the inventory slots to create a messy appearance.
+ * 
+ * - Chest: 1-4 different item types with quantity 1-8
+ * - Trap chest: 2-6 different item types with quantity 1-8
  */
-public class ShulkerBoxItemPopulator {
+public class ChestItemPopulator {
 
     private static final Random RANDOM = new Random();
-    private static final int MIN_ITEM_TYPES = 2;
-    private static final int MAX_ITEM_TYPES = 6;
+    
+    // Chest settings
+    private static final int CHEST_MIN_ITEM_TYPES = 1;
+    private static final int CHEST_MAX_ITEM_TYPES = 4;
+    
+    // Trap chest settings
+    private static final int TRAP_CHEST_MIN_ITEM_TYPES = 2;
+    private static final int TRAP_CHEST_MAX_ITEM_TYPES = 6;
+    
+    // Quantity settings (both use 1-8)
     private static final int MIN_QUANTITY_NORMAL = 1;
-    private static final int MAX_QUANTITY_NORMAL = 16;
+    private static final int MAX_QUANTITY_NORMAL = 8;
     private static final int QUANTITY_SINGLE = 1;
-    private static final int INVENTORY_SIZE = 27;
+    
+    // Inventory sizes
+    private static final int CHEST_INVENTORY_SIZE = 27;
+    private static final int TRAP_CHEST_INVENTORY_SIZE = 27;
 
     /**
-     * Checks if the given item stack is a shulker box.
-     *
-     * @param itemStack the item stack to check
-     * @return true if the item is a shulker box
+     * Chest type enumeration.
      */
-    public static boolean isShulkerBox(ItemStack itemStack) {
-        if (itemStack == null || itemStack.isEmpty()) {
-            return false;
-        }
-        return SpecialItemClassifier.isShulkerBox(itemStack);
+    public enum ChestType {
+        CHEST,
+        TRAP_CHEST
     }
 
     /**
-     * Populates a shulker box with random items.
-     * Adds 2-6 different item types with appropriate quantities.
-     * Items are randomly distributed across the inventory slots to create a messy appearance.
+     * Checks if the given item stack is a chest.
      *
-     * @param shulkerBox the shulker box item stack to populate
-     * @return the populated shulker box, or the original shulker box if population fails
+     * @param itemStack the item stack to check
+     * @return true if the item is a chest
      */
-    public static ItemStack populateShulkerBox(ItemStack shulkerBox) {
-        if (!isShulkerBox(shulkerBox)) {
-            AllEggRandomizer.LOGGER.warn("Attempted to populate non-shulker box item: {}", shulkerBox.getItem());
-            return shulkerBox;
+    public static boolean isChest(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return SpecialItemClassifier.isChest(itemStack);
+    }
+
+    /**
+     * Checks if the given item stack is a trap chest.
+     *
+     * @param itemStack the item stack to check
+     * @return true if the item is a trap chest
+     */
+    public static boolean isTrapChest(ItemStack itemStack) {
+        if (itemStack == null || itemStack.isEmpty()) {
+            return false;
+        }
+        return SpecialItemClassifier.isTrapChest(itemStack);
+    }
+
+    /**
+     * Determines the chest type from the item stack.
+     *
+     * @param itemStack the item stack to check
+     * @return the chest type, or null if not a chest
+     */
+    public static ChestType getChestType(ItemStack itemStack) {
+        if (isChest(itemStack)) {
+            return ChestType.CHEST;
+        }
+        if (isTrapChest(itemStack)) {
+            return ChestType.TRAP_CHEST;
+        }
+        return null;
+    }
+
+    /**
+     * Populates a chest with random items.
+     * Adds 1-4 different item types with quantity 1-8.
+     *
+     * @param chest the chest item stack to populate
+     * @return the populated chest, or the original chest if population fails
+     */
+    public static ItemStack populateChest(ItemStack chest) {
+        return populateChestInternal(chest, ChestType.CHEST);
+    }
+
+    /**
+     * Populates a trap chest with random items.
+     * Adds 2-6 different item types with quantity 1-8.
+     *
+     * @param trapChest the trap chest item stack to populate
+     * @return the populated trap chest, or the original trap chest if population fails
+     */
+    public static ItemStack populateTrapChest(ItemStack trapChest) {
+        return populateChestInternal(trapChest, ChestType.TRAP_CHEST);
+    }
+
+    /**
+     * Internal method to populate chest items.
+     *
+     * @param chest the chest item stack to populate
+     * @param chestType the type of chest
+     * @return the populated chest
+     */
+    private static ItemStack populateChestInternal(ItemStack chest, ChestType chestType) {
+        if (chest == null || chest.isEmpty()) {
+            return chest;
+        }
+
+        // Determine settings based on chest type
+        int minItemTypes, maxItemTypes, inventorySize;
+        switch (chestType) {
+            case TRAP_CHEST:
+                minItemTypes = TRAP_CHEST_MIN_ITEM_TYPES;
+                maxItemTypes = TRAP_CHEST_MAX_ITEM_TYPES;
+                inventorySize = TRAP_CHEST_INVENTORY_SIZE;
+                break;
+            case CHEST:
+            default:
+                minItemTypes = CHEST_MIN_ITEM_TYPES;
+                maxItemTypes = CHEST_MAX_ITEM_TYPES;
+                inventorySize = CHEST_INVENTORY_SIZE;
+                break;
         }
 
         // Determine how many different item types to add
-        int itemTypeCount = RANDOM.nextInt(MAX_ITEM_TYPES - MIN_ITEM_TYPES + 1) + MIN_ITEM_TYPES;
+        int itemTypeCount = RANDOM.nextInt(maxItemTypes - minItemTypes + 1) + minItemTypes;
 
-        // Get all valid items from registry (exclude shulker boxes and air)
+        // Get all valid items from registry (exclude chests, shulker boxes and air)
         List<Item> availableItems = new ArrayList<>();
         for (Item item : Registries.ITEM) {
             if (item == Items.AIR) {
                 continue;
             }
-            // Skip shulker boxes to avoid nested containers
+            // Skip containers to avoid nested containers
             ItemStack testStack = item.getDefaultStack();
-            if (SpecialItemClassifier.isShulkerBox(testStack)) {
+            if (SpecialItemClassifier.isShulkerBox(testStack) || 
+                SpecialItemClassifier.isChest(testStack) ||
+                SpecialItemClassifier.isTrapChest(testStack)) {
                 continue;
             }
             // Skip bundles to avoid nested bundles
@@ -80,12 +169,12 @@ public class ShulkerBoxItemPopulator {
         }
 
         if (availableItems.isEmpty()) {
-            AllEggRandomizer.LOGGER.warn("No valid items found to populate shulker box");
-            return shulkerBox;
+            AllEggRandomizer.LOGGER.warn("No valid items found to populate " + chestType);
+            return chest;
         }
 
-        // Create inventory with 27 slots
-        DefaultedList<ItemStack> inventory = DefaultedList.ofSize(INVENTORY_SIZE, ItemStack.EMPTY);
+        // Create inventory with slots
+        DefaultedList<ItemStack> inventory = DefaultedList.ofSize(inventorySize, ItemStack.EMPTY);
 
         // Create a list of occupied slots to track where we've placed items
         List<Integer> occupiedSlots = new ArrayList<>();
@@ -100,25 +189,24 @@ public class ShulkerBoxItemPopulator {
             int totalQuantity = determineQuantity(itemStack);
 
             // Scatter the item stack into smaller stacks across random slots
-            // This creates a messy appearance by breaking up the stack
             distributeItemStack(inventory, occupiedSlots, selectedItem, totalQuantity);
 
-            AllEggRandomizer.LOGGER.debug("Added to shulker box: {} (total: {})", selectedItem, totalQuantity);
+            AllEggRandomizer.LOGGER.debug("Added to {}: {} (total: {})", chestType, selectedItem, totalQuantity);
         }
 
-        // Set shulker box contents using ContainerComponent
+        // Set chest contents using ContainerComponent
         try {
             ContainerComponent containerComponent = ContainerComponent.fromStacks(inventory);
-            shulkerBox.set(DataComponentTypes.CONTAINER, containerComponent);
+            chest.set(DataComponentTypes.CONTAINER, containerComponent);
 
-            AllEggRandomizer.LOGGER.info("Populated shulker box with {} item types scattered across {} slots", 
-                itemTypeCount, occupiedSlots.size());
+            AllEggRandomizer.LOGGER.info("Populated {} with {} item types scattered across {} slots", 
+                chestType, itemTypeCount, occupiedSlots.size());
         } catch (Exception e) {
-            AllEggRandomizer.LOGGER.error("Failed to populate shulker box contents", e);
-            return shulkerBox;
+            AllEggRandomizer.LOGGER.error("Failed to populate " + chestType + " contents", e);
+            return chest;
         }
 
-        return shulkerBox;
+        return chest;
     }
 
     /**
@@ -184,7 +272,8 @@ public class ShulkerBoxItemPopulator {
     private static int getRandomEmptySlot(DefaultedList<ItemStack> inventory, List<Integer> occupiedSlots) {
         // Get all empty slots
         List<Integer> emptySlots = new ArrayList<>();
-        for (int i = 0; i < INVENTORY_SIZE; i++) {
+        int size = inventory.size();
+        for (int i = 0; i < size; i++) {
             if (!occupiedSlots.contains(i) && inventory.get(i).isEmpty()) {
                 emptySlots.add(i);
             }
@@ -200,10 +289,10 @@ public class ShulkerBoxItemPopulator {
 
     /**
      * Determines the quantity for an item based on its category.
-     * Weapons/equipment/special items get 1, other items get 1-16.
+     * Weapons/equipment/special items get 1, other items get 1-8.
      *
      * @param itemStack the item stack to determine quantity for
-     * @return the quantity (1 for special items, 1-16 for others)
+     * @return the quantity (1 for special items, 1-8 for others)
      */
     public static int determineQuantity(ItemStack itemStack) {
         if (ItemCategoryClassifier.isSingleQuantity(itemStack)) {

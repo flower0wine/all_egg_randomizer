@@ -35,7 +35,6 @@ public class HelpCommand {
         source.sendFeedback(() -> Text.literal("§e/allegg disable <category> §7- 禁用指定分类 §c[需要OP]"), false);
         source.sendFeedback(() -> Text.literal("§e/allegg setweight <category> <weight> §7- 设置分类权重 §c[需要OP]"), false);
         source.sendFeedback(() -> Text.literal("§e/allegg reload §7- 重载配置文件 §c[需要OP]"), false);
-        source.sendFeedback(() -> Text.literal("§e/allegg gui §7- 打开配置GUI面板"), false);
         source.sendFeedback(() -> Text.literal("§7可用分类: §aENTITY, ITEM, EFFECT, EVENT"), false);
         
         return 1;

@@ -2,8 +2,11 @@ package com.alleggrandomizer.core.generator.event;
 
 import com.alleggrandomizer.AllEggRandomizer;
 import net.minecraft.entity.EntityType;
+import net.minecraft.entity.EquipmentSlot;
 import net.minecraft.entity.SpawnReason;
 import net.minecraft.entity.passive.PigEntity;
+import net.minecraft.item.ItemStack;
+import net.minecraft.item.Items;
 import net.minecraft.server.world.ServerWorld;
 import net.minecraft.util.math.Vec3d;
 
@@ -42,10 +45,9 @@ public class PigWithSaddleEvent implements WorldEvent {
 
             // Set as adult (pigs need to be adult to be rideable)
             pig.setBaby(false);
-            
-            // Note: In vanilla Minecraft, pigs can be ridden without a saddle
-            // but require a carrot on a stick to control direction
-            // For rideable pig, no additional setup needed - it's naturally rideable
+
+            // Equip saddle on the pig using EquipmentSlot (1.21+ API)
+            pig.equipStack(EquipmentSlot.SADDLE, new ItemStack(Items.SADDLE));
 
             // Spawn the pig
             world.spawnEntity(pig);

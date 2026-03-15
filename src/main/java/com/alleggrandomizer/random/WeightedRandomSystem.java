@@ -5,10 +5,13 @@ import com.alleggrandomizer.config.CategoryConfig;
 import com.alleggrandomizer.config.CategoryType;
 import com.alleggrandomizer.config.ModConfig;
 import com.alleggrandomizer.core.classifier.ItemCategoryClassifier;
+import com.alleggrandomizer.core.entity.SpecialEntityType;
 import com.alleggrandomizer.core.item.BundleItemPopulator;
+import com.alleggrandomizer.core.item.ChestItemPopulator;
 import com.alleggrandomizer.core.item.ShulkerBoxItemPopulator;
 import net.minecraft.item.Item;
 import net.minecraft.item.ItemStack;
+import net.minecraft.util.math.random.Random;
 
 import java.util.*;
 
@@ -141,6 +144,22 @@ public class WeightedRandomSystem {
     }
     
     /**
+     * Select a special entity type from the special entity pool.
+     * 
+     * @param specialEntityWeights map of special entity types to weights
+     * @return the selected special entity type, or null if selection fails
+     */
+    public SpecialEntityType selectSpecialEntity(Map<SpecialEntityType, Double> specialEntityWeights) {
+        if (specialEntityWeights == null || specialEntityWeights.isEmpty()) {
+            AllEggRandomizer.LOGGER.warn("No special entities provided");
+            return null;
+        }
+        
+        ProductSelector<SpecialEntityType> selector = new ProductSelector<>();
+        return selector.selectProduct(specialEntityWeights);
+    }
+    
+    /**
      * Select a random item within the ITEM category.
      * 
      * @param config the mod configuration
@@ -176,16 +195,16 @@ public class WeightedRandomSystem {
         if (ItemCategoryClassifier.isSingleQuantity(itemStack)) {
             quantity = 1;
         } else {
-            // Get config stack size as max, or use default 1-5
-            Number stackSizeObj = itemConfig.getSetting("stackSize", 5);
-            int maxQuantity = 5;
+            // Get config stack size as max, or use default 1-8
+            Number stackSizeObj = itemConfig.getSetting("stackSize", 8);
+            int maxQuantity = 8;
             if (stackSizeObj != null) {
                 maxQuantity = Math.max(1, stackSizeObj.intValue());
             }
             
-            // Random between 1 and maxQuantity
-            Random random = new Random();
-            quantity = random.nextInt(maxQuantity) + 1;
+            // Random between 1 and maxQuantity using Minecraft's Random.create()
+            // This provides high-quality randomness for game use
+            quantity = Random.create().nextInt(maxQuantity) + 1;
         }
         AllEggRandomizer.LOGGER.info("Selected item: {} (category: {}, quantity: {})",
             selectedItem, ItemCategoryClassifier.classify(itemStack), quantity);
@@ -204,6 +223,20 @@ public class WeightedRandomSystem {
             resultStack.setCount(1);
             resultStack = ShulkerBoxItemPopulator.populateShulkerBox(resultStack);
             AllEggRandomizer.LOGGER.info("Shulker box generated with quantity: 1 and populated contents");
+        }
+        
+        // Chests should always have quantity of 1 and be populated with random items
+        if (ChestItemPopulator.isChest(resultStack)) {
+            resultStack.setCount(1);
+            resultStack = ChestItemPopulator.populateChest(resultStack);
+            AllEggRandomizer.LOGGER.info("Chest generated with quantity: 1 and populated contents");
+        }
+        
+        // Trap chests should always have quantity of 1 and be populated with random items
+        if (ChestItemPopulator.isTrapChest(resultStack)) {
+            resultStack.setCount(1);
+            resultStack = ChestItemPopulator.populateTrapChest(resultStack);
+            AllEggRandomizer.LOGGER.info("Trap chest generated with quantity: 1 and populated contents");
         }
         
         return resultStack;

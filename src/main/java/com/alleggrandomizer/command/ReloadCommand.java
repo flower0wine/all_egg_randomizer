@@ -34,17 +34,14 @@ public class ReloadCommand {
 
     /**
      * Execute the reload command.
-     * Note: With the new world-specific config system, configuration is automatically
-     * persisted and loaded. This command clears the cache and reloads from disk.
+     * Note: With the removed static cache, configuration is always fetched fresh
+     * from PersistentStateManager. This command mainly provides feedback to the user.
      */
     private static int execute(CommandContext<ServerCommandSource> context) {
         ServerCommandSource source = context.getSource();
         
         try {
-            // Clear the cached config for this world, forcing a reload on next access
-            WorldConfigManager.clearWorldConfig(source.getServer());
-            
-            // Immediately reload by accessing it again
+            // No static cache to clear - always fetches fresh from PersistentStateManager
             var worldConfig = WorldConfigManager.getWorldConfig(source.getServer());
             
             if (worldConfig != null) {

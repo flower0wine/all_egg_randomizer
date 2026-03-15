@@ -54,6 +54,22 @@ public class SpecialEntityConfiguratorFactory {
                 return new SkeletonHorseRiderConfigurator(
                     SkeletonHorseRiderConfigurator.WeaponType.BOW);
 
+            // Spider knight riders
+            case SKELETON_ON_SPIDER_WITH_SWORD:
+                return new SpiderRiderConfigurator(
+                    SpiderRiderConfigurator.WeaponType.IRON_SWORD);
+            case SKELETON_ON_SPIDER_WITH_BOW:
+                return new SpiderRiderConfigurator(
+                    SpiderRiderConfigurator.WeaponType.BOW);
+
+            // Wolf (basic - no variant configurator needed for basic spawn)
+            case WOLF:
+                return new PassiveAnimalConfigurator(0.3);
+
+            // Fox (basic - no variant configurator needed for basic spawn)
+            case RED_FOX:
+                return new PassiveAnimalConfigurator(0.3);
+
             // Lightning creeper
             case LIGHTNING_CREEPER:
                 return new LightningCreeperConfigurator();

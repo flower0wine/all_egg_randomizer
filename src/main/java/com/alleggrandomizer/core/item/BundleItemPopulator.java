@@ -16,14 +16,14 @@ import java.util.Random;
 
 /**
  * Populates bundle items with random contents.
- * Handles the logic for filling bundles with 2-10 different item types,
+ * Handles the logic for filling bundles with 1-4 different item types,
  * respecting quantity rules for weapons/equipment vs other items.
  */
 public class BundleItemPopulator {
 
     private static final Random RANDOM = new Random();
-    private static final int MIN_ITEM_TYPES = 2;
-    private static final int MAX_ITEM_TYPES = 10;
+    private static final int MIN_ITEM_TYPES = 1;
+    private static final int MAX_ITEM_TYPES = 4;
     private static final int MIN_QUANTITY_NORMAL = 2;
     private static final int MAX_QUANTITY_NORMAL = 5;
     private static final int QUANTITY_SINGLE = 1;
@@ -43,7 +43,7 @@ public class BundleItemPopulator {
 
     /**
      * Populates a bundle with random items.
-     * Adds 2-10 different item types with appropriate quantities.
+     * Adds 1-4 different item types with appropriate quantities.
      *
      * @param bundle the bundle item stack to populate
      * @return the populated bundle, or the original bundle if population fails

@@ -28,6 +28,16 @@ public enum SpecialEntityType {
     SKELETON_ON_SKELETON_HORSE_WITH_SWORD(EntityType.SKELETON, "骷髅马上面骑着骷髅（拿铁剑）", false),
     SKELETON_ON_SKELETON_HORSE_WITH_BOW(EntityType.SKELETON, "骷髅马上面骑着骷髅（拿弓）", false),
 
+    // Spider knight variants
+    SKELETON_ON_SPIDER_WITH_SWORD(EntityType.SKELETON, "蜘蛛骑士（拿铁剑）", false),
+    SKELETON_ON_SPIDER_WITH_BOW(EntityType.SKELETON, "蜘蛛骑士（拿弓）", false),
+
+    // Wolf (basic - variant setting requires more complex API in 1.21.11)
+    WOLF(EntityType.WOLF, "狼", true),
+
+    // Fox (basic - variant setting requires more complex API in 1.21.11)
+    RED_FOX(EntityType.FOX, "狐狸", true),
+
     // Lightning creeper (special - created by lightning strike)
     LIGHTNING_CREEPER(EntityType.CREEPER, "闪电苦力怕", false);
 

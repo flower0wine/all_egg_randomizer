@@ -5,7 +5,8 @@
 	"mixins": [
 		"ThrownEggEntityMixin",
 		"ServerPlayNetworkHandlerMixin",
-		"SheepEntityMixin"
+		"SheepEntityMixin",
+		"WolfEntityMixin"
 	],
 	"injectors": {
 		"defaultRequire": 1

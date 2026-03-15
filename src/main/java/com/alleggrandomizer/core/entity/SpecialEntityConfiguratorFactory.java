@@ -1,6 +1,7 @@
 package com.alleggrandomizer.core.entity;
 
 import net.minecraft.entity.EntityType;
+import net.minecraft.util.DyeColor;
 
 /**
  * Factory for creating entity configurators for special entity types.
@@ -62,9 +63,30 @@ public class SpecialEntityConfiguratorFactory {
                 return new SpiderRiderConfigurator(
                     SpiderRiderConfigurator.WeaponType.BOW);
 
-            // Wolf (basic - no variant configurator needed for basic spawn)
-            case WOLF:
-                return new PassiveAnimalConfigurator(0.3);
+            // Wolf variants - each with specific coat variant and random collar color
+            case WOLF_DEFAULT:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.DEFAULT, DyeColor.RED, false);
+            case WOLF_ASHEN:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.ASHEN, DyeColor.RED, false);
+            case WOLF_BLACK:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.BLACK, DyeColor.RED, false);
+            case WOLF_CHESTNUT:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.CHESTNUT, DyeColor.RED, false);
+            case WOLF_PALE:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.PALE, DyeColor.RED, false);
+            case WOLF_RUSTY:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.RUSTY, DyeColor.RED, false);
+            case WOLF_SNOWY:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.SNOWY, DyeColor.RED, false);
+            case WOLF_SPOTTED:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.SPOTTED, DyeColor.RED, false);
+            case WOLF_STRIPED:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.STRIPED, DyeColor.RED, false);
+            case WOLF_WOODS:
+                return new WolfConfigurator(WolfConfigurator.WolfCoatVariant.WOODS, DyeColor.RED, false);
+            case WOLF_RANDOM:
+                // Random variant, random collar color - handled in configure method
+                return new WolfConfigurator(null, null, false);
 
             // Fox (basic - no variant configurator needed for basic spawn)
             case RED_FOX:

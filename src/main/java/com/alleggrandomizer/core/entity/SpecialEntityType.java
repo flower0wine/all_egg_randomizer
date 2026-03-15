@@ -32,8 +32,18 @@ public enum SpecialEntityType {
     SKELETON_ON_SPIDER_WITH_SWORD(EntityType.SKELETON, "蜘蛛骑士（拿铁剑）", false),
     SKELETON_ON_SPIDER_WITH_BOW(EntityType.SKELETON, "蜘蛛骑士（拿弓）", false),
 
-    // Wolf (basic - variant setting requires more complex API in 1.21.11)
-    WOLF(EntityType.WOLF, "狼", true),
+    // Wolf variants (10 coat patterns + 1 random)
+    WOLF_DEFAULT(EntityType.WOLF, "默认狼", true),
+    WOLF_ASHEN(EntityType.WOLF, "灰白狼", true),
+    WOLF_BLACK(EntityType.WOLF, "黑色狼", true),
+    WOLF_CHESTNUT(EntityType.WOLF, "栗色狼", true),
+    WOLF_PALE(EntityType.WOLF, "淡色狼", true),
+    WOLF_RUSTY(EntityType.WOLF, "锈色狼", true),
+    WOLF_SNOWY(EntityType.WOLF, "雪白狼", true),
+    WOLF_SPOTTED(EntityType.WOLF, "斑点狼", true),
+    WOLF_STRIPED(EntityType.WOLF, "条纹狼", true),
+    WOLF_WOODS(EntityType.WOLF, "森林狼", true),
+    WOLF_RANDOM(EntityType.WOLF, "随机狼", true),
 
     // Fox (basic - variant setting requires more complex API in 1.21.11)
     RED_FOX(EntityType.FOX, "狐狸", true),
